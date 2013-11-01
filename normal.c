@@ -223,6 +223,11 @@ FILE *op;
 
     if(  normal > 0. )
     {
+   	 if( jacobi( norm,vect,numatm*3, 100*numatm*numatm, 1.e-5) != 0)
+   	 {/* error condition */
+       		aaerror(" Jacobi in FDnormal returns an error ");
+   		}
+/* eigenvalue shift was slower than jacobi so just do it
 // setup eigenvalue shift
 	for( i=0; i< numatm*3; i++)
 	{
@@ -234,12 +239,14 @@ FILE *op;
 // lanczos will only do the (int) normal vectors 
 	lanczos( norm, vect, numatm*3, (int)normal, 10000, 1.e-10);
         fprintf(op,"The Eigenvectors \n");
+*/
         for( i=0; i< (int)normal; i++)
         {
 	//	printf("%d %f  ",i,(*norm)[i*numatm*3+i]);
 
 // undo the eigenvalue shift
-		(*norm)[i*numatm*3+i] = -((*norm)[i*numatm*3+i] -1000.);
+// never done so we don't need to undo it
+//		(*norm)[i*numatm*3+i] = -((*norm)[i*numatm*3+i] -1000.);
 
             if( (*norm)[i*numatm*3 + i] > 0 )
             {
