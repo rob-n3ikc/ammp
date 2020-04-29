@@ -197,16 +197,33 @@ FILE *op;
     	}
     */
 
-    if( normal < 0.)
+    if( jacobi( norm,vect,numatm*3, 100*numatm*numatm, 1.e-10) != 0)
+    {/* error condition */
+        aaerror(" Jacobi in FDnormal returns an error ");
+    }
+    /* check orthogonal */
+    /*
+    	for( i=0; i< numatm; i++)
+    	{
+    	x1 =0; x2 = 0; x3 = 0;
+    	for (j=0; j< numatm; j++)
+    	{
+    	x1 +=(*vect)[ j*3]*(*vect)[j*3];
+    	x1 +=(*vect)[ j*3+1]*(*vect)[j*3+1];
+    	x1 +=(*vect)[ j*3+2]*(*vect)[j*3+2];
+    	x2 +=(*vect)[i*numatm*3 +j*3]*(*vect)[i*numatm*3+j*3];
+    	x2 +=(*vect)[i*numatm*3 +j*3+1]*(*vect)[i*numatm*3+j*3+1];
+    	x2 +=(*vect)[i*numatm*3 +j*3+2]*(*vect)[i*numatm*3+j*3+2];
+    	x3 +=(*vect)[j*3]*(*vect)[i*numatm*3+j*3];
+    	x3 +=(*vect)[j*3+1]*(*vect)[i*numatm*3+j*3+1];
+    	x3 +=(*vect)[j*3+2]*(*vect)[i*numatm*3+j*3+2];
+    	}
+    	fprintf(op,"normality check %f %d %f >%f< should be zero\n",x1,i,x2,x3);
+    	}
+    */
+    /* end check */
+    if( echo)
     {
-/* we want a spectrum so use a generic eigensolver */
-
-   	 if( jacobi( norm,vect,numatm*3, 100*numatm*numatm, 1.e-5) != 0)
-   	 {/* error condition */
-       		aaerror(" Jacobi in FDnormal returns an error ");
-   		}
-
-
         fprintf(op,"The %d  Eigenvalues\n",3*numatm);
         for( i=0; i< numatm*3; i++)
         {
@@ -221,36 +238,13 @@ FILE *op;
         }
     }
 
-    if(  normal > 0. )
+    if( echo && normal > 0. )
     {
-   	 if( jacobi( norm,vect,numatm*3, 100*numatm*numatm, 1.e-5) != 0)
-   	 {/* error condition */
-       		aaerror(" Jacobi in FDnormal returns an error ");
-   		}
-/* eigenvalue shift was slower than jacobi so just do it
-// setup eigenvalue shift
-	for( i=0; i< numatm*3; i++)
-	{
-	for( j=0; j< numatm*3; j++)
-		(*norm)[i*numatm*3+j] *= -1;
-	(*norm)[i*numatm*3+i] += 1000;;
-	}
-//int lanczos( am, em,lead, n, maxit, toler) 
-// lanczos will only do the (int) normal vectors 
-	lanczos( norm, vect, numatm*3, (int)normal, 10000, 1.e-10);
         fprintf(op,"The Eigenvectors \n");
-*/
-        for( i=0; i< (int)normal; i++)
+        for( i=0; i< numatm*3; i++)
         {
-	//	printf("%d %f  ",i,(*norm)[i*numatm*3+i]);
-
-// undo the eigenvalue shift
-// never done so we don't need to undo it
-//		(*norm)[i*numatm*3+i] = -((*norm)[i*numatm*3+i] -1000.);
-
             if( (*norm)[i*numatm*3 + i] > 0 )
             {
-	//	printf("%d %f \n",i,(*norm)[i*numatm*3+i]);
 		if(sqrt(4.184E26*(*norm)[i*3*numatm+i]*0.5)/2.997924e10/3.14159265 > frequency_cutoff) continue;
                 fprintf(op,"REMARK %f cm-1\n",
                         sqrt(4.184E26*(*norm)[i*3*numatm + i]*.5)/2.997924e10/3.14159265);
@@ -280,9 +274,9 @@ FILE *op;
                     fprintf(op,
                             "ATOM  %5d %-4s%c%-3s  %4d    %8.3f%8.3f%8.3f%6.2f%6.2f\n",
                             j,atid,' ',resid,ap->serial/100+i+1,
-                            ap->x+(*vect)[i*numatm*3 +j*3],
-                            ap->y+(*vect)[i*numatm*3 +j*3+1],
-                            ap->z+(*vect)[i*numatm*3 +j*3+2],1.,10.);
+                            ap->x+(*vect)[i*numatm*3 +j*3]*normal,
+                            ap->y+(*vect)[i*numatm*3 +j*3+1]*normal,
+                            ap->z+(*vect)[i*numatm*3 +j*3+2]*normal,1.,10.);
 
                 }
             }
@@ -340,9 +334,7 @@ float (*am)[], (*em)[];
     {
 
         emax = -1;
-
         imax = 0; jmax = 0;
-
         for( i=0; i< n; i++)
             for( j=i+1; j< n; j++)
             {
@@ -350,14 +342,8 @@ float (*am)[], (*em)[];
                 {emax = fabs((*am)[i*n+j]); imax = i; jmax = j;}
             }
 
-//	printf("%d %f %f \n", iter, emax, toler);fflush(stdout);
         if( emax < toler)
         {  free(s1); free(s2); return 0; }
-
-	for( imax = 0; imax< n-1; imax++)
-	for( jmax = imax+1; jmax < n; jmax++)
-	{
-	if( fabs((*am)[imax*n + jmax]) < toler) continue;
 
         r = (*am)[imax*n + imax] - (*am)[jmax*n+jmax];
         r = r*r + 4*(*am)[imax*n+jmax]*(*am)[imax*n+jmax];
@@ -419,131 +405,8 @@ float (*am)[], (*em)[];
             (*em)[iindex+imax] = (*s1)[i];
             (*em)[iindex+jmax] = (*s2)[i];
         }
-	}/* end of imax,jmax loop */
 
     } /* end of iter loop */
     free(s1); free(s2);
     return 0;
 }/*end of jacobi */
-
-
-/* sort of lanczos algorithm modified for big matrices */
-int lanczos( am, em, n,num, maxit, toler) 
-float toler;
-int n, maxit,num;
-float (*am)[], (*em)[];
-/* am is the initial matrix, em is the eigenvectors */
-{
-int i,j,iter;
-float (*eigen)[];
-float (*s)[];
-
-
-//	eigen = (float *) malloc( n*sizeof(float));
-	eigen =  malloc( n*sizeof(float));
-	s =  malloc( n*sizeof(float));
-
-/* initialize to values from the matrix 
-*  any "random" ones will be fine
-*  so the matrix elements are OK 
-*/
-	for( i=0 ; i< n*n; i++)
-	{
-		(*em)[i] = (*am)[i];
-	}
-
-	
-	for( iter=0; iter < maxit; iter++)
-	{
-	normal_matrix_product( am, em,s,n,n*n,num);	
-	if( !normal_ortho( em, eigen,n, n*n,num, toler)) break;
-	}
-
-	for( i = 0; i< n*n; i++)
-		(*am)[i] = 0.;
-	for( i=0; i< num; i++)
-		(*am)[i*n+i] = sqrt((*eigen)[i]);
-
-	free(s);
-	free(eigen);
-	return 0;
-}/* end of lanczos (sort of) */
-int normal_matrix_product( am,em,s,n,nn,num)
-int n,nn,num;
-float (*am)[nn], (*em)[nn], (*s)[n];
-{
-
-	int i,j,k;
-
-	for( i= 0; i< num; i++)
-	{
-		for( j=0; j< n; j++)
-			(*s)[j] = 0.;
-		for( j=0; j< n; j++)
-		for( k=0; k< n; k++)
-			(*s)[j] += (*em)[i*n+k]*(*am)[j*n+k]; /* transposed */
-		for( j=0; j<n; j++)
-			(*em)[i*n+j] = (*s)[j];
-	}/* i */
-	return 1==1;
-
-}/* end of normal_matrix_product */
-
-int normal_ortho(em, ev, n, nn,num, toler)
-int n,nn,num;
-float (*em)[nn],  (*ev)[n];
-float toler;
-{
-
-	int i,j;
-/* normalization */
-	float maxd;
-	maxd = 0.;
-	for( i=0; i< num; i++)
-	{
-		int k;
-		float sum;
-
-		float delta;
-		k = i*n;
-		sum = 0.;
-		for( j=0; j< n; j++)
-			sum += (*em)[k+j]*(*em)[k+j];
-		delta = fabs( sum - (*ev)[i]);
-		if( sum > 1.) delta = delta/sum;
-		if( delta > maxd) maxd = delta;
-		(*ev)[i] = sum;
-		if( sum < 0.00001) sum = 1.;
-		sum = 1./sqrt(sum);
-		for( j=0; j< n; j++)
-			(*em)[k+j] *= sum;
-	}/* i */	
-//	printf("%f %f \n", maxd, toler); fflush(stdout);
-	if( maxd < toler) return (1==0);
-/* orthogonalization */
-/* assumes start is normalized */
-	for( i=0; i< num-1; i++)
-	{
-		int k;
-		float dotp, selfp;
-		for( j=i+1; j< num; j++)
-		{
-		dotp = 0.;
-		for( k=0; k< n; k++)
-			dotp += (*em)[i*n+k]*(*em)[j*n+k];
-		selfp = 0.;
-		for( k=0; k< n; k++)
-		{
-			(*em)[j*n+k] -= dotp*(*em)[i*n+k];
-			selfp += (*em)[j*n+k]*(*em)[j*n+k];
-		}
-		if( selfp < 0.00001) selfp = 1.;
-		selfp = 1./sqrt(selfp);
-		for( k=0; k< n; k++)
-			(*em)[j*n+k] *= selfp;
-
-		}/* j*/
-		
-	}/* i (second loop) */
-	return (1==1);
-}

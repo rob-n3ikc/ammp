@@ -15,6 +15,7 @@
 *	atom   - atom record
 *	bond   - bond record
 *       morse  - morse record
+        comorse   generated morses for a  cooperative term
 *	angle  - angle record
 * 	torsion - torsion record
 *       ttarget - torsion target i j k l angle fk;
@@ -340,7 +341,7 @@ char *line;
     int v_scf(),f_scf();
     int v_central(),f_central();
     int atom(),bond(),angle(),torsion(),a_readvelocity();
-    int morse(),v_morse(),f_morse();
+    int morse(),v_morse(),f_morse(),cooperative_morse();
     int restrain(),v_restrain(),f_restrain();
     int v_ho_restrain(), f_ho_restrain();
     int tether(),v_tether(),f_tether(),alltether(),no_h_tether(), inactive_tether();
@@ -518,6 +519,11 @@ char *line;
         { }else
         { aaerror(" cannot add to morse structure -data structure error");
             exit(0);}
+        goto DONE;
+    }
+    if( strcmp( &token[0][0], "comorse" ) == 0 )
+    {
+       cooperative_morse( itemp[1],itemp[2],itemp[3],&token[4][0],&token[5][0], ftemp[6],ftemp[7],ftemp[8]);
         goto DONE;
     }
     if( strcmp( &token[0][0], "angle" ) == 0 )

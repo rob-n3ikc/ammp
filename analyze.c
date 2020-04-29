@@ -58,7 +58,7 @@ int v_abc();
 
 int v_noel(),a_noel();
 int v_ho_noel();
-int a_bond(),a_mmbond(),a_angle(),a_mmangle();
+int a_bond(),a_mmbond(),a_angle(),a_mmangle(),a_morse();
 int a_nonbon(),a_torsion(),a_hybrid(),a_restrain();
 int a_react();
 int a_ttarget();
@@ -85,6 +85,8 @@ for( ifs = 0; ifs < nfs; ifs++ )
 	{a_mmbond(&vt,0.,i,j,op); fprintf( op," %f mm bond energy\n",vt); goto DONE;}
 	if( vfs[ifs] == v_mmangle)
 	{a_mmangle(&vt,0.,i,j,op); fprintf( op," %f mm angle energy\n",vt); goto DONE;}
+	if( vfs[ifs] == v_morse)
+	{a_morse(&vt,0.,i,j,op); fprintf( op," %f morse energy\n",vt); goto DONE;}
 	if( vfs[ifs] == v_angle)
 	{a_angle(&vt,0.,i,j,op); fprintf( op," %f angle energy\n",vt); goto DONE;}
 	if( vfs[ifs] == v_abc)

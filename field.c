@@ -492,22 +492,12 @@ int nx,ny,nz;
     for( i=0; i< 80; i++) line[i] = ' '; line[80] = '\0';
  
 
-/*
-original code
     imin = xmin*nx/(xmax-xmin); imax = (xmax*nx/(xmax-xmin));
     jmin = ymin*ny/(ymax-ymin); jmax = (ymax*ny/(ymax-ymin));
     kmin = zmin*nz/(zmax-zmin); kmax = (zmax*nz/(zmax-zmin));
     if( imin >= 0) imin += 1;
     if( jmin >= 0) jmin += 1;
     if( kmin >= 0) kmin += 1;
-*/
-    imin = xmin*nx/(xmax-xmin); imax = (xmax*nx/(xmax-xmin));
-    jmin = ymin*ny/(ymax-ymin); jmax = (ymax*ny/(ymax-ymin));
-    kmin = zmin*nz/(zmax-zmin); kmax = (zmax*nz/(zmax-zmin));
-	imax = imin + nx-1;
-	jmax = jmin + ny-1;
-        kmax = kmin + nz-1;
-
 
     /* write the header */
 //    fprintf(where,"\n       2 !NTITLE\nREMARKS AMMP xplor map                                                                                 \nREMARKS                                                                                                 \n");

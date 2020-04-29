@@ -51,6 +51,39 @@ typedef struct{
 
 MORSE *morse_first = NULL;
 MORSE *morse_last = NULL;
+/* cooperativity generates morse bonds for cooperative h-bonds in polymers */
+int cooperative_morse( low, high, too_close, first,second, bl, fk, order)
+int low,high,too_close;
+char *first, *second;
+float bl,fk,order;
+{
+    ATOM *ap1,*ap2,*afirst,*a_m_serial(),*a_next();
+    int math_match_atom(); /*  takes atom-name (char*) and ATOM*  */
+    int i,j,natoms,l,k,a_number(),morse();
+    afirst = a_next(-1);
+    natoms = a_number();
+    ap1 = afirst;
+    for( i = 0; i < natoms; i++)
+    {
+         if( math_match_atom( first, ap1) != 0)
+	{
+        l = ap1->serial;
+        l /= 100;
+        ap2 = afirst;
+	for( j=0; j < natoms; j++) // cannot just to upper diagonal of interactions because they're directional
+        {
+        if( math_match_atom( second, ap2) == 0){ap2 = ap2->next; continue; }
+         k = ap2->serial;
+         k /= 100;
+         if( abs(k-l) <=  too_close){ ap2 = ap2->next; continue;}
+	morse( ap1->serial, ap2->serial, bl, fk, order);
+        ap2 = ap2->next;
+	}//j
+	}// if 
+        ap1 = ap1->next;
+	}//i
+return 1;	
+}
 /* function morse adds a morse to the morse list
 * returns 1 if ok
 * returns 0 if not
@@ -70,7 +103,7 @@ float bl,fk ,order;
     ap2 = a_m_serial( p2 );
     if( (ap1 == NULL) || (ap2 == NULL) )
     {
-        sprintf( line,"undefined atom in morse %d %d \0",p1,p2);
+        sprintf( line,"undefined atom in morse %d %d ",p1,p2);
         aaerror( line );
         return 0;
     }
@@ -128,10 +161,8 @@ float *V,lambda;
                 r = xt*xt+yt*yt+zt*zt;
             }
             r = sqrt(r);
-            /* *V += bp->k*( r - bp->length)*(r - bp->length);
-            */
             xt = 1.- exp( -(bp->order)*(r - bp->length)) ;
-            *V += bp->k*xt*xt;
+            *V += bp->k*(xt*xt -1.);
         }
         if( bp == bp->next ) return 1;
         bp = bp->next;
@@ -245,12 +276,67 @@ FILE *where;
     {
         if( b->next == NULL) return;
         a1 = b->atom1; a2 = b->atom2;
-        fprintf( where,"morse %d %d %f %f %f \;\n",a1->serial,a2->serial,
+        fprintf( where,"morse %d %d %f %f %f ;\n",a1->serial,a2->serial,
                  b->length,b->k,b->order);
         b = b->next;
     }
     if( b->next == NULL) return;
     a1 = b->atom1; a2 = b->atom2;
-    fprintf( where,"morse %d %d %f %f %f\;\n",a1->serial,a2->serial,
+    fprintf( where,"morse %d %d %f %f %f;\n",a1->serial,a2->serial,
              b->length,b->k,b->order);
 }
+/* a_morse()
+* this function sums up the potentials
+* this function sums up the potentials
+* for the atoms defined in the MORSE data structure.
+* only does bonds in the given range
+*/
+/* standard returns 0 if error (any) 1 if ok
+* V is the potential */
+int a_morse( V, lambda,ilow,ihigh,op )
+float *V,lambda;
+int ilow,ihigh;
+FILE *op;
+{
+    MORSE *bp;
+    float r,xt,yt,zt;
+    ATOM *a1,*a2;
+
+
+    bp = morse_first;
+    if( bp == NULL ) return 1;
+    while(1)
+    {
+        if( bp == NULL) return 0;
+        a1 = bp->atom1; a2 = bp->atom2;
+        if( a1->active || a2->active )
+            if(( a1->serial >= ilow && a1->serial <=ihigh)
+                    ||( a2->serial >= ilow && a2->serial <=ihigh))
+            {
+                if( lambda == 0.)
+                {
+                    r = (a1->x - a2->x)*(a1->x - a2->x);
+                    r = r + (a1->y - a2->y)*(a1->y - a2->y);
+                    r = r + (a1->z - a2->z)*(a1->z - a2->z);
+                } else
+                {
+                    xt = (a1->x -a2->x +lambda*(a1->dx-a2->dx));
+                    yt = (a1->y -a2->y +lambda*(a1->dy-a2->dy));
+                    zt = (a1->z -a2->z +lambda*(a1->dz-a2->dz));
+                    r = xt*xt+yt*yt+zt*zt;
+                }
+                r = sqrt(r);  
+//		zt = bp->k*( r - bp->length)*(r - bp->length);
+ //               *V += zt;
+                xt = 1.- exp( -(bp->order)*(r - bp->length)) ;
+       //     *V += bp->k*(xt*xt -1.);
+		zt = bp->k*(xt*xt -1.);
+                *V += zt;
+                fprintf(op,"Bond %s %d %s %d E %f value %f error %f\n"
+                        ,a1->name,a1->serial,a2->name,a2->serial,zt,r,r-bp->length);
+            }
+        if( bp == bp->next ) return 1;
+        bp = bp->next;
+    }
+}
+
